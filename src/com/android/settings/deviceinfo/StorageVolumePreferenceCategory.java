@@ -38,6 +38,7 @@ import android.provider.MediaStore;
 import android.text.format.Formatter;
 
 import com.android.settings.R;
+import com.android.settings.Settings;
 import com.android.settings.deviceinfo.StorageMeasurement.MeasurementDetails;
 import com.android.settings.deviceinfo.StorageMeasurement.MeasurementReceiver;
 import com.google.android.collect.Lists;
@@ -51,7 +52,6 @@ public class StorageVolumePreferenceCategory extends PreferenceCategory {
 
     private static final int ORDER_USAGE_BAR = -2;
     private static final int ORDER_STORAGE_LOW = -1;
-    public static final String KEY_UNMOUNT_USB = "key_unmount_usb";
 
     /** Physical volume being measured, or {@code null} for internal. */
     private final StorageVolume mVolume;
@@ -130,8 +130,6 @@ public class StorageVolumePreferenceCategory extends PreferenceCategory {
 
         setTitle(volume != null ? volume.getDescription(context)
                 : context.getText(R.string.internal_storage));
-
-
     }
 
     private StorageItemPreference buildItem(int titleRes, int colorRes) {
@@ -200,20 +198,12 @@ public class StorageVolumePreferenceCategory extends PreferenceCategory {
         }
 
         final boolean isRemovable = mVolume != null ? mVolume.isRemovable() : false;
-        final boolean isUsbStorage = mVolume != null ? (mVolume.getDescription(context).equals(
-                Resources.getSystem().getString(Resources.getSystem().getIdentifier(
-                "storage_usb", "string", "android"))) ? true : false) : false;
-        final boolean isAccessible = mResources.getBoolean(
-                com.android.internal.R.bool.config_batterySdCardAccessibility);
         // Always create the preference since many code rely on it existing
         mMountTogglePreference = new Preference(context);
-        if (isRemovable && (isUsbStorage || isAccessible)) {
+        if (isRemovable) {
             mMountTogglePreference.setTitle(R.string.sd_eject);
             mMountTogglePreference.setSummary(R.string.sd_eject_summary);
             addPreference(mMountTogglePreference);
-        }
-        if (isRemovable && isUsbStorage) {
-            mMountTogglePreference.setKey(KEY_UNMOUNT_USB);
         }
 
         final boolean allowFormat = mVolume != null;
@@ -439,8 +429,7 @@ public class StorageVolumePreferenceCategory extends PreferenceCategory {
             intent.putExtra(StorageVolume.EXTRA_STORAGE_VOLUME, mVolume);
         } else if (pref == mItemApps) {
             intent = new Intent(Intent.ACTION_MANAGE_PACKAGE_STORAGE);
-            intent.setClass(getContext(),
-                    com.android.settings.Settings.ManageApplicationsActivity.class);
+            intent.setClass(getContext(), Settings.ManageApplicationsActivity.class);
         } else if (pref == mItemDownloads) {
             intent = new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).putExtra(
                     DownloadManager.INTENT_EXTRAS_SORT_BY_SIZE, true);

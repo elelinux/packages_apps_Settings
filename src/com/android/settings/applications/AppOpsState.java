@@ -103,14 +103,14 @@ public class AppOpsState {
                     AppOpsManager.OP_WIFI_SCAN,
                     AppOpsManager.OP_NEIGHBORING_CELLS,
                     AppOpsManager.OP_MONITOR_LOCATION,
-                    AppOpsManager.OP_MONITOR_HIGH_POWER_LOCATION},
+                    AppOpsManager.OP_MONITOR_HIGH_POWER_LOCATION },
             new boolean[] { true,
                     true,
                     false,
                     false,
                     false,
                     false,
-                    false}
+                    false }
             );
 
     public static final OpsTemplate PERSONAL_TEMPLATE = new OpsTemplate(
@@ -166,7 +166,8 @@ public class AppOpsState {
                     AppOpsManager.OP_AUDIO_MEDIA_VOLUME,
                     AppOpsManager.OP_AUDIO_ALARM_VOLUME,
                     AppOpsManager.OP_AUDIO_NOTIFICATION_VOLUME,
-                    AppOpsManager.OP_AUDIO_BLUETOOTH_VOLUME, },
+                    AppOpsManager.OP_AUDIO_BLUETOOTH_VOLUME,
+                    AppOpsManager.OP_MUTE_MICROPHONE},
             new boolean[] { false,
                     true,
                     true,
@@ -188,84 +189,22 @@ public class AppOpsState {
                     AppOpsManager.OP_CALL_PHONE,
                     AppOpsManager.OP_WRITE_SETTINGS,
                     AppOpsManager.OP_SYSTEM_ALERT_WINDOW,
-                    AppOpsManager.OP_WAKE_LOCK },
+                    AppOpsManager.OP_WAKE_LOCK,
+                    AppOpsManager.OP_PROJECT_MEDIA,
+                    AppOpsManager.OP_ACTIVATE_VPN, },
             new boolean[] { false,
                     true,
                     true,
                     true,
                     true,
-                    true,  }
-            );
-
-    public static final OpsTemplate PERMISSIONS_TEMPLATE = new OpsTemplate(
-            new int[] {
-                    AppOpsManager.OP_COARSE_LOCATION,
-                    AppOpsManager.OP_FINE_LOCATION,
-                    AppOpsManager.OP_GPS,
-                    AppOpsManager.OP_VIBRATE,
-                    AppOpsManager.OP_READ_CONTACTS,
-                    AppOpsManager.OP_WRITE_CONTACTS,
-                    AppOpsManager.OP_READ_CALL_LOG,
-                    AppOpsManager.OP_WRITE_CALL_LOG,
-                    AppOpsManager.OP_READ_CALENDAR,
-                    AppOpsManager.OP_WRITE_CALENDAR,
-                    AppOpsManager.OP_WIFI_SCAN,
-                    AppOpsManager.OP_POST_NOTIFICATION,
-                    AppOpsManager.OP_NEIGHBORING_CELLS,
-                    AppOpsManager.OP_CALL_PHONE,
-                    AppOpsManager.OP_READ_SMS,
-                    AppOpsManager.OP_WRITE_SMS,
-                    AppOpsManager.OP_RECEIVE_SMS,
-                    AppOpsManager.OP_RECEIVE_EMERGECY_SMS,
-                    AppOpsManager.OP_RECEIVE_MMS,
-                    AppOpsManager.OP_RECEIVE_WAP_PUSH,
-                    AppOpsManager.OP_SEND_SMS,
-                    AppOpsManager.OP_READ_ICC_SMS,
-                    AppOpsManager.OP_WRITE_ICC_SMS,
-                    AppOpsManager.OP_WRITE_SETTINGS,
-                    AppOpsManager.OP_SYSTEM_ALERT_WINDOW,
-                    AppOpsManager.OP_ACCESS_NOTIFICATIONS,
-                    AppOpsManager.OP_CAMERA,
-                    AppOpsManager.OP_RECORD_AUDIO,
-                    AppOpsManager.OP_PLAY_AUDIO,
-                    AppOpsManager.OP_READ_CLIPBOARD,
-                    AppOpsManager.OP_WRITE_CLIPBOARD },
-            new boolean[] { true,
                     true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true }
+                    false,
+                    false, }
             );
 
     public static final OpsTemplate[] ALL_TEMPLATES = new OpsTemplate[] {
-            //LOCATION_TEMPLATE, PERSONAL_TEMPLATE, MESSAGING_TEMPLATE, DEVICE_TEMPLATE
-            PERMISSIONS_TEMPLATE
+            LOCATION_TEMPLATE, PERSONAL_TEMPLATE, MESSAGING_TEMPLATE,
+            MEDIA_TEMPLATE, DEVICE_TEMPLATE
     };
 
     /**
@@ -558,14 +497,14 @@ public class AppOpsState {
         final ArrayList<Integer> permOps = new ArrayList<Integer>();
         final int[] opToOrder = new int[AppOpsManager._NUM_OP];
         for (int i=0; i<tpl.ops.length; i++) {
-            //if (tpl.showPerms[i]) {
+            if (tpl.showPerms[i]) {
                 String perm = AppOpsManager.opToPermission(tpl.ops[i]);
                 if (perm != null && !perms.contains(perm)) {
                     perms.add(perm);
                     permOps.add(tpl.ops[i]);
                     opToOrder[tpl.ops[i]] = i;
                 }
-            //}
+            }
         }
 
         List<AppOpsManager.PackageOps> pkgs;

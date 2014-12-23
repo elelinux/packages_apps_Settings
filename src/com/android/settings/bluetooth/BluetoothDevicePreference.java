@@ -19,15 +19,11 @@ package com.android.settings.bluetooth;
 import static android.os.UserManager.DISALLOW_CONFIG_BLUETOOTH;
 
 import android.app.AlertDialog;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.UserManager;
 import android.preference.Preference;
 import android.text.Html;
@@ -39,6 +35,8 @@ import android.view.View.OnClickListener;
 import android.widget.ImageView;
 
 import com.android.settings.R;
+import com.android.settings.search.Index;
+import com.android.settings.search.SearchIndexableRaw;
 
 import java.util.List;
 
@@ -58,10 +56,6 @@ public final class BluetoothDevicePreference extends Preference implements
 
     private AlertDialog mDisconnectDialog;
 
-    private Context mContext;
-
-    private static final int OK_BUTTON = -1;
-
     public BluetoothDevicePreference(Context context, CachedBluetoothDevice cachedDevice) {
         super(context);
 
@@ -72,6 +66,8 @@ public final class BluetoothDevicePreference extends Preference implements
         }
 
         mCachedDevice = cachedDevice;
+
+        setLayoutResource(R.layout.preference_bt_icon);
 
         if (cachedDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
             UserManager um = (UserManager) context.getSystemService(Context.USER_SERVICE);
@@ -139,10 +135,10 @@ public final class BluetoothDevicePreference extends Preference implements
 
         if (mCachedDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
             ImageView deviceDetails = (ImageView) view.findViewById(R.id.deviceDetails);
+
             if (deviceDetails != null) {
                 deviceDetails.setOnClickListener(this);
                 deviceDetails.setTag(mCachedDevice);
-                deviceDetails.setAlpha(isEnabled() ? 255 : sDimAlpha);
             }
         }
 
@@ -195,28 +191,21 @@ public final class BluetoothDevicePreference extends Preference implements
 
     // Show disconnect confirmation dialog for a device.
     private void askDisconnect() {
-        mContext = getContext();
+        Context context = getContext();
         String name = mCachedDevice.getName();
         if (TextUtils.isEmpty(name)) {
-            name = mContext.getString(R.string.bluetooth_device);
+            name = context.getString(R.string.bluetooth_device);
         }
-        String message = mContext.getString(R.string.bluetooth_disconnect_all_profiles, name);
-        String title = mContext.getString(R.string.bluetooth_disconnect_title);
-
-        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        mContext.registerReceiver(mBluetoothReceiver, filter);
+        String message = context.getString(R.string.bluetooth_disconnect_all_profiles, name);
+        String title = context.getString(R.string.bluetooth_disconnect_title);
 
         DialogInterface.OnClickListener disconnectListener = new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                // Disconnect only when user has selected OK
-                if (which == OK_BUTTON) {
-                    mCachedDevice.disconnect();
-                }
-                mContext.unregisterReceiver(mBluetoothReceiver);
+                mCachedDevice.disconnect();
             }
         };
 
-        mDisconnectDialog = Utils.showDisconnectDialog(mContext,
+        mDisconnectDialog = Utils.showDisconnectDialog(context,
                 mDisconnectDialog, disconnectListener, title, Html.fromHtml(message));
     }
 
@@ -224,6 +213,17 @@ public final class BluetoothDevicePreference extends Preference implements
         if (!mCachedDevice.startPairing()) {
             Utils.showError(getContext(), mCachedDevice.getName(),
                     R.string.bluetooth_pairing_error_message);
+        } else {
+            final Context context = getContext();
+
+            SearchIndexableRaw data = new SearchIndexableRaw(context);
+            data.className = BluetoothSettings.class.getName();
+            data.title = mCachedDevice.getName();
+            data.screenTitle = context.getResources().getString(R.string.bluetooth_settings);
+            data.iconResId = R.drawable.ic_settings_bluetooth2;
+            data.enabled = true;
+
+            Index.getInstance(context).updateFromSearchIndexableData(data);
         }
     }
 
@@ -320,24 +320,6 @@ public final class BluetoothDevicePreference extends Preference implements
                 return R.drawable.ic_bt_headset_hfp;
             }
         }
-        return 0;
+        return R.drawable.ic_settings_bluetooth2;
     }
-
-    private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                switch (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
-                    case BluetoothAdapter.STATE_TURNING_OFF:
-                        Log.v(TAG, "Receiver DISABLED_ACTION ");
-                        if (mDisconnectDialog != null && mDisconnectDialog.isShowing()) {
-                            mDisconnectDialog.dismiss();
-                        }
-                        mContext.unregisterReceiver(mBluetoothReceiver);
-                        break;
-                }
-            }
-        }
-    };
 }

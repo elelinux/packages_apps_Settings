@@ -25,9 +25,7 @@ import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.util.Log;
 
-import com.android.settings.ProgressCategory;
 import com.android.settings.RestrictedSettingsFragment;
-import com.android.settings.SettingsPreferenceFragment;
 
 import java.util.Collection;
 import java.util.WeakHashMap;
@@ -98,7 +96,7 @@ public abstract class DeviceListPreferenceFragment extends
     @Override
     public void onResume() {
         super.onResume();
-        if (mLocalManager == null) return;
+        if (mLocalManager == null || isUiRestricted()) return;
 
         mLocalManager.setForegroundActivity(getActivity());
         mLocalManager.getEventManager().registerCallback(this);
@@ -109,7 +107,9 @@ public abstract class DeviceListPreferenceFragment extends
     @Override
     public void onPause() {
         super.onPause();
-        if (mLocalManager == null) return;
+        if (mLocalManager == null || isUiRestricted()) {
+            return;
+        }
 
         removeAllDevices();
         mLocalManager.setForegroundActivity(null);
@@ -128,23 +128,6 @@ public abstract class DeviceListPreferenceFragment extends
         for (CachedBluetoothDevice cachedDevice : cachedDevices) {
             onDeviceAdded(cachedDevice);
         }
-    }
-
-    void removeOorDevices() {
-        Collection<CachedBluetoothDevice> cachedDevices =
-                mLocalManager.getCachedDeviceManager().getCachedDevicesCopy();
-        for (CachedBluetoothDevice cachedDevice : cachedDevices) {
-             if (cachedDevice.getBondState() == BluetoothDevice.BOND_NONE &&
-                 !cachedDevice.isVisible()) {
-                 Log.d(TAG, "Device Removed " + cachedDevice);
-                 BluetoothDevicePreference preference = mDevicePreferenceMap.get(cachedDevice);
-                 if (preference != null) {
-                     mDeviceListGroup.removePreference(preference);
-                 }
-                 mDevicePreferenceMap.remove(cachedDevice);
-                 cachedDevice.setRemovable(true);
-             }
-         }
     }
 
     @Override
@@ -184,6 +167,12 @@ public abstract class DeviceListPreferenceFragment extends
      }
 
     void createDevicePreference(CachedBluetoothDevice cachedDevice) {
+        if (mDeviceListGroup == null) {
+            Log.w(TAG, "Trying to create a device preference before the list group/category "
+                    + "exists!");
+            return;
+        }
+
         BluetoothDevicePreference preference = new BluetoothDevicePreference(
                 getActivity(), cachedDevice);
 
@@ -208,9 +197,6 @@ public abstract class DeviceListPreferenceFragment extends
     }
 
     public void onScanningStateChanged(boolean started) {
-        if (started == false) {
-          removeOorDevices();
-        }
         updateProgressUi(started);
     }
 

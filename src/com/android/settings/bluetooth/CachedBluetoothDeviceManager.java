@@ -86,7 +86,9 @@ final class CachedBluetoothDeviceManager {
             BluetoothDevice device) {
         CachedBluetoothDevice newDevice = new CachedBluetoothDevice(mContext, adapter,
             profileManager, device);
-        mCachedDevices.add(newDevice);
+        synchronized (mCachedDevices) {
+            mCachedDevices.add(newDevice);
+        }
         return newDevice;
     }
 
@@ -110,18 +112,23 @@ final class CachedBluetoothDeviceManager {
         return device.getAddress();
     }
 
+    public synchronized void clearNonBondedDevices() {
+        for (int i = mCachedDevices.size() - 1; i >= 0; i--) {
+            CachedBluetoothDevice cachedDevice = mCachedDevices.get(i);
+            if (cachedDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
+                mCachedDevices.remove(i);
+            }
+        }
+    }
+
     public synchronized void onScanningStateChanged(boolean started) {
+        if (!started) return;
+
         // If starting a new scan, clear old visibility
         // Iterate in reverse order since devices may be removed.
         for (int i = mCachedDevices.size() - 1; i >= 0; i--) {
             CachedBluetoothDevice cachedDevice = mCachedDevices.get(i);
-            if (started) {
-                cachedDevice.setVisible(false);
-            } else if (!started &&
-                cachedDevice.getBondState() == BluetoothDevice.BOND_NONE &&
-                cachedDevice.isRemovable()) {
-                mCachedDevices.remove(cachedDevice);
-            }
+            cachedDevice.setVisible(false);
         }
     }
 
@@ -139,15 +146,6 @@ final class CachedBluetoothDeviceManager {
         }
     }
 
-    public synchronized void onDeviceDeleted(CachedBluetoothDevice cachedDevice) {
-        Log.d(TAG,"onDeviceDeleted");
-        if (cachedDevice != null &&
-            cachedDevice.getBondState() == BluetoothDevice.BOND_NONE &&
-            cachedDevice.isRemovable()) {
-            mCachedDevices.remove(cachedDevice);
-        }
-    }
-
     public synchronized void onBluetoothStateChanged(int bluetoothState) {
         // When Bluetooth is turning off, we need to clear the non-bonded devices
         // Otherwise, they end up showing up on the next BT enable
@@ -155,8 +153,8 @@ final class CachedBluetoothDeviceManager {
             for (int i = mCachedDevices.size() - 1; i >= 0; i--) {
                 CachedBluetoothDevice cachedDevice = mCachedDevices.get(i);
                 if (cachedDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
-                   cachedDevice.setVisible(false);
-                   mCachedDevices.remove(i);
+                    cachedDevice.setVisible(false);
+                    mCachedDevices.remove(i);
                 } else {
                     // For bonded devices, we need to clear the connection status so that
                     // when BT is enabled next time, device connection status shall be retrieved
